@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import openai
 from openai import OpenAI
 import logging
 
@@ -21,9 +22,11 @@ def user_input_func ():
 
 def creating_client ():
     client = OpenAI(
-        api_key=os.environ.get('DEEPSEEK_API_KEY'),
-        base_url="https://api.deepseek.com",
-    )
+    api_key=os.environ.get('DEEPSEEK_API_KEY'),
+    base_url="https://api.deepseek.com",
+    timeout=10.0 #https://github.com/openai/openai-python?tab=readme-ov-file#timeouts
+)
+
     return client
 
 def calling_llm():
@@ -40,12 +43,28 @@ def calling_llm():
             )
         print(response.choices[0].message.content)
         
-    except Exception as error_catch:
-        if '401' in str(error_catch): #https://api-docs.deepseek.com/quick_start/error_codes
-            print('Houve um erro de autenticação - favor verificar sua key')
-            
-        else:
-            print(f'Houve algum outro erro: {error_catch}')
+    #https://stackoverflow.com/questions/76363168/openai-api-how-do-i-handle-errors-in-python/ https://github.com/openai/openai-python?tab=readme-ov-file#handling-errors
+    #https://developers.openai.com/api/docs/guides/error-codes#python-library-error-types
+    
+    except openai.BadRequestError as e:
+        print(f"Erro 400: Verifique se os parâmetros informados estão corretos ") 
+    except openai.AuthenticationError as e: 
+        print(f'Erro 401: Verifique se sua API key está válida ')
+    except openai.PermissionDeniedError as e: 
+        print(f"Erro 403: Verifique se seu usuário possui as permissões necessárias")        
+    except openai.NotFoundError as e: 
+        print(f"Erro 404: Modelo de llm escolhido não existe ou URL indicada para esse incorreta")
+    except openai.UnprocessableEntityError as e: 
+        print(f"Erro 422: Verifique se os parâmetros não estão fora dos padrões")
+    except openai.RateLimitError as e: 
+        print(f"Erro 429: Limite de requisições feitas permitidas atingido. Aguarde alguns instantes e tente novamente")
+    except openai.InternalServerError as e: 
+        print(f"Error >=500: Serviço temporariamente indisponível. Tente novamente mais tarde")
+    except openai.APITimeoutError as e:
+        print('A requisição levou muito tempo para ser completada, isso pode ser devido a problemas de conexão ou sistema sobrecarregado.Tente novamente mais tarde ')
+    except openai.APIConnectionError as e: 
+        print(f"Verifique a conexão com a internet e tente novamente mais tarde. Se o problema persistir verifique se há algum erro na configuração do proxy, certificado SSL ou Firewall")
+
             
 creating_client()
 calling_llm()
