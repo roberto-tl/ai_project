@@ -10,6 +10,7 @@ import json
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
 def config_json_func():
     with open("config.json") as j:
         json_config=json.load(j)
